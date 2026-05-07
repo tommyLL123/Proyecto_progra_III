@@ -5,10 +5,13 @@ using namespace std;
 
 string normalize(const string& text) {
     string res;
-    for (char c : text) {
-        if (isalnum(c) || c == ' ')
+
+    for (unsigned char c : text) {
+        if (isalnum(c) || c == ' ') {
             res += tolower(c);
+        }
     }
+
     return res;
 }
 
@@ -16,8 +19,34 @@ vector<string> tokenize(const string& text) {
     vector<string> tokens;
     stringstream ss(text);
     string word;
-    while (ss >> word) tokens.push_back(word);
+
+    while (ss >> word) {
+        tokens.push_back(word);
+    }
+
     return tokens;
+}
+
+vector<string> parseCSVLine(const string& line) {
+    vector<string> fields;
+    string field;
+    bool inQuotes = false;
+
+    for (char c : line) {
+        if (c == '"') {
+            inQuotes = !inQuotes;
+        }
+        else if (c == ',' && !inQuotes) {
+            fields.push_back(field);
+            field.clear();
+        }
+        else {
+            field += c;
+        }
+    }
+
+    fields.push_back(field);
+    return fields;
 }
 
 // ===================== MOVIE =====================
@@ -34,7 +63,7 @@ struct Movie {
 
 struct TrieNode {
     unordered_map<char, TrieNode*> children;
-    vector<int> movieIds; // películas asociadas
+    vector<int> movieIds;
     bool end = false;
 };
 
@@ -43,26 +72,36 @@ private:
     TrieNode* root;
 
 public:
-    Trie() { root = new TrieNode(); }
+    Trie() {
+        root = new TrieNode();
+    }
 
     void insert(const string& word, int movieId) {
         TrieNode* node = root;
+
         for (char c : word) {
-            if (!node->children[c])
+            if (!node->children.count(c)) {
                 node->children[c] = new TrieNode();
+            }
+
             node = node->children[c];
             node->movieIds.push_back(movieId);
         }
+
         node->end = true;
     }
 
-    vector<int> searchPrefix(const string& prefix) {
+    vector<int> search(const string& text) {
         TrieNode* node = root;
-        for (char c : prefix) {
-            if (!node->children.count(c))
+
+        for (char c : text) {
+            if (!node->children.count(c)) {
                 return {};
+            }
+
             node = node->children[c];
         }
+
         return node->movieIds;
     }
 };
@@ -74,7 +113,7 @@ private:
     vector<Movie> movies;
     Trie trie;
 
-    unordered_map<string, vector<int>> index; // índice invertido
+    unordered_map<string, vector<int>> exactIndex;
 
     set<int> liked;
     set<int> watchLater;
@@ -82,97 +121,163 @@ private:
 public:
     void loadCSV(const string& filename) {
         ifstream file(filename);
+
+        if (!file.is_open()) {
+            cout << "No se pudo abrir el archivo: " << filename << endl;
+            return;
+        }
+
         string line;
+
+        // Saltar encabezado
+        getline(file, line);
 
         int id = 0;
 
         while (getline(file, line)) {
-            stringstream ss(line);
-            string title, plot, genre, director;
+            vector<string> fields = parseCSVLine(line);
 
-            getline(ss, title, ',');
-            getline(ss, plot, ',');
-            getline(ss, genre, ',');
-            getline(ss, director, ',');
+            // Dataset esperado:
+            // 0 Release Year
+            // 1 Title
+            // 2 Origin/Ethnicity
+            // 3 Director
+            // 4 Cast
+            // 5 Genre
+            // 6 Wiki Page
+            // 7 Plot
+
+            if (fields.size() < 8) {
+                continue;
+            }
 
             Movie m;
             m.id = id++;
-            m.title = normalize(title);
-            m.plot = normalize(plot);
-            m.genre = normalize(genre);
-            m.director = normalize(director);
+            m.title = normalize(fields[1]);
+            m.director = normalize(fields[3]);
+            m.genre = normalize(fields[5]);
+            m.plot = normalize(fields[7]);
 
             movies.push_back(m);
 
-            // indexar
-            auto words = tokenize(m.title + " " + m.plot);
+            string fullText = m.title + " " + m.plot;
+            vector<string> words = tokenize(fullText);
 
-            for (auto& w : words) {
-                index[w].push_back(m.id);
-                trie.insert(w, m.id);
+            for (string& w : words) {
+                exactIndex[w].push_back(m.id);
+
+                // Insertamos todos los sufijos para permitir búsqueda por sub-palabra.
+                // Ejemplo: "desembarcar" permite encontrar "bar".
+                for (int i = 0; i < (int)w.size(); i++) {
+                    trie.insert(w.substr(i), m.id);
+                }
             }
         }
+
+        cout << "Peliculas cargadas: " << movies.size() << endl;
     }
 
     vector<int> search(string query) {
         query = normalize(query);
-        auto words = tokenize(query);
+        vector<string> words = tokenize(query);
 
         unordered_map<int, int> score;
 
-        for (auto& w : words) {
-            // índice invertido
-            if (index.count(w)) {
-                for (int id : index[w])
+        for (string& w : words) {
+            // Coincidencia exacta
+            if (exactIndex.count(w)) {
+                for (int id : exactIndex[w]) {
                     score[id] += 3;
+                }
             }
 
-            // prefijo con Trie
-            auto pref = trie.searchPrefix(w);
-            for (int id : pref)
+            // Coincidencia parcial / sub-palabra
+            vector<int> partial = trie.search(w);
+
+            for (int id : partial) {
                 score[id] += 1;
+            }
         }
 
-        // ordenar resultados
-        vector<pair<int,int>> temp(score.begin(), score.end());
+        vector<pair<int, int>> temp;
 
-        sort(temp.begin(), temp.end(), [](auto& a, auto& b) {
+        for (auto& p : score) {
+            temp.push_back({p.first, p.second});
+        }
+
+        sort(temp.begin(), temp.end(), [](const pair<int, int>& a, const pair<int, int>& b) {
             return a.second > b.second;
         });
 
         vector<int> result;
-        for (auto& p : temp) result.push_back(p.first);
+
+        for (auto& p : temp) {
+            result.push_back(p.first);
+        }
 
         return result;
     }
 
     void showResults(const vector<int>& results, int page) {
+        if (results.empty()) {
+            cout << "No se encontraron resultados.\n";
+            return;
+        }
+
         int start = page * 5;
         int end = min((int)results.size(), start + 5);
 
+        if (start >= (int)results.size()) {
+            cout << "No hay mas resultados.\n";
+            return;
+        }
+
+        cout << "\n--- RESULTADOS ---\n";
+
         for (int i = start; i < end; i++) {
-            cout << i << ". " << movies[results[i]].title << endl;
+            int movieId = results[i];
+            cout << i << ". " << movies[movieId].title << endl;
         }
     }
 
     void showMovie(int id) {
-        cout << "\nTITLE: " << movies[id].title << endl;
-        cout << "PLOT: " << movies[id].plot << endl;
+        if (id < 0 || id >= (int)movies.size()) {
+            cout << "Pelicula no valida.\n";
+            return;
+        }
+
+        cout << "\n--- PELICULA SELECCIONADA ---\n";
+        cout << "Titulo: " << movies[id].title << endl;
+        cout << "Director: " << movies[id].director << endl;
+        cout << "Genero: " << movies[id].genre << endl;
+        cout << "Sinopsis: " << movies[id].plot << endl;
     }
 
-    void like(int id) {
+    void likeMovie(int id) {
         liked.insert(id);
+        cout << "Pelicula marcada con Like.\n";
     }
 
     void addWatchLater(int id) {
         watchLater.insert(id);
+        cout << "Pelicula agregada a Ver mas tarde.\n";
     }
 
     void showWatchLater() {
         cout << "\n--- WATCH LATER ---\n";
-        for (int id : watchLater) {
-            cout << movies[id].title << endl;
+
+        if (watchLater.empty()) {
+            cout << "No hay peliculas guardadas en Ver mas tarde.\n";
+            return;
         }
+
+        for (int id : watchLater) {
+            cout << "- " << movies[id].title << endl;
+        }
+    }
+
+    bool validMovieId(int id) {
+        return id >= 0 && id < (int)movies.size();
     }
 };
 
@@ -181,45 +286,79 @@ public:
 int main() {
     SearchEngine engine;
 
-    engine.loadCSV("movies.csv");
-
-    engine.showWatchLater();
+    // Cambia este nombre si tu archivo CSV tiene otro nombre.
+    engine.loadCSV("wiki_movie_plots_deduped.csv");
 
     while (true) {
+        engine.showWatchLater();
+
         cout << "\nBuscar: ";
         string query;
         getline(cin, query);
 
-        auto results = engine.search(query);
+        if (query == "salir" || query == "q") {
+            break;
+        }
+
+        vector<int> results = engine.search(query);
 
         int page = 0;
+
         while (true) {
             engine.showResults(results, page);
 
-            cout << "\n(n) siguiente | (s) seleccionar | (q) salir: ";
+            if (results.empty()) {
+                break;
+            }
+
+            cout << "\n(n) siguiente | (p) anterior | (s) seleccionar | (q) nueva busqueda: ";
+
             char op;
             cin >> op;
 
             if (op == 'n') {
                 page++;
-            } else if (op == 's') {
+            }
+            else if (op == 'p') {
+                if (page > 0) {
+                    page--;
+                }
+            }
+            else if (op == 's') {
                 int idx;
                 cout << "Indice: ";
                 cin >> idx;
 
+                if (idx < 0 || idx >= (int)results.size()) {
+                    cout << "Indice invalido.\n";
+                    continue;
+                }
+
                 int movieId = results[idx];
+
                 engine.showMovie(movieId);
 
-                cout << "(l) like | (w) watch later: ";
-                char c;
-                cin >> c;
+                cout << "\n(l) like | (w) watch later | (b) volver: ";
 
-                if (c == 'l') engine.like(movieId);
-                if (c == 'w') engine.addWatchLater(movieId);
+                char action;
+                cin >> action;
 
-            } else break;
+                if (action == 'l') {
+                    engine.likeMovie(movieId);
+                }
+                else if (action == 'w') {
+                    engine.addWatchLater(movieId);
+                }
+            }
+            else if (op == 'q') {
+                break;
+            }
+
+            cin.ignore();
         }
 
         cin.ignore();
     }
+
+    return 0;
 }
