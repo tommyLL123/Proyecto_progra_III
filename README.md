@@ -32,3 +32,4 @@ El objetivo del proyecto final es implementar una plataforma de **streaming**. U
 * Todo el programa, desde la lectura hasta la búsqueda de palabras, debe estar en C++.
 * Cumplir con la rúbrica del proyecto.
 * Fecha de presentación: La semana 8 (avance) y la semana 16 (final).
+
