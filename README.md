@@ -2,9 +2,9 @@
 
 ## Integrantes
 * Victor Paolo Soto Ruiz
-* 
-* 
-*
+* Giancarlo Davila Segovia
+* Tommy Bryan Loo Leon
+* Ignacio German Alvarez 
 *
 
 ## Documentacion
