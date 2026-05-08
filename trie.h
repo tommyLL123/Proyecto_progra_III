@@ -5,10 +5,10 @@
 
 namespace utils
 {
+  bool is_num(const std::string &str);
   std::string normalize(const std::string& text);
   std::vector<std::string> tokenize(const std::string &text);
   std::vector<std::string> parseCSVLine(const std::string &line);
-
 }
 
 
@@ -62,6 +62,8 @@ private:
   std::unordered_map<std::string, std::vector<unsigned>> yearMap_;
   std::unordered_map<std::string, std::vector<unsigned>> originMap_;
   std::unordered_map<std::string, std::vector<unsigned>> genreMap_;
+public:
+  void loadCSV(const std::string& filename);
 };
 
 class User
