@@ -1,8 +1,70 @@
+#include "trie.h"
+#include <sstream>
+
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////// UTILS ////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+std::string utils::normalize(const std::string &text)
+{
+    std::string res;
+
+    for (unsigned char c : text) {
+        if (std::isalnum(c) || c == ' ') {
+            res += std::tolower(c);
+        }
+    }
+
+    return res;
+}
+
+std::vector<std::string> utils::tokenize(const std::string &text)
+{
+    std::vector<std::string> tokens;
+    std::stringstream ss(text);
+    std::string word;
+
+    while (ss >> word) {
+        tokens.push_back(word);
+    }
+
+    return tokens;
+}
+
+std::vector<std::string> utils::parseCSVLine(const std::string &line)
+{
+    std::vector<std::string> fields;
+    std::string field;
+    bool inQuotes = false;
+
+    for (char c : line) {
+        if (c == '"') {
+            inQuotes = !inQuotes;
+        }
+        else if (c == ',' && !inQuotes) {
+            fields.push_back(field);
+            field.clear();
+        }
+        else {
+            field += c;
+        }
+    }
+
+    fields.push_back(field);
+    return fields;
+}
+
+
+
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// TRIE NODE //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TrieNode(char letra, unsigned peso): letra_(letra), peso_(peso)
+TrieNode::TrieNode(): letra_('\0'), peso_(0)
+{
+}
+
+TrieNode::TrieNode(char letra, unsigned peso): letra_(letra), peso_(peso)
 {
 }
 

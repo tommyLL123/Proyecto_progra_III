@@ -3,6 +3,15 @@
 #include <unordered_map>
 #include <unordered_set>
 
+namespace utils
+{
+  std::string normalize(const std::string& text);
+  std::vector<std::string> tokenize(const std::string &text);
+  std::vector<std::string> parseCSVLine(const std::string &line);
+
+}
+
+
 class Movie
 {
 public:
@@ -21,9 +30,10 @@ public:
 class TrieNode
 {
 public:
+  TrieNode();
   TrieNode(char letra, unsigned peso);
 
-  unordered_map<char, TrieNode*> children_;
+  std::unordered_map<char, TrieNode*> children_;
   std::vector<unsigned> movieIds_;
   char letra_;
   unsigned peso_;
@@ -57,6 +67,9 @@ private:
 class User
 {
 private:
-  std::unordered_set<unsigned> liked;
-  std::unordered_set<unsigned> watchLater;
+  std::unordered_set<unsigned> liked_;
+  std::unordered_set<unsigned> watchLater_;
+public:
+  void addLiked(unsigned movieId);
+  void addwatchLater(unsigned movieId);
 };
