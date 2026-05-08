@@ -63,7 +63,18 @@ private:
   std::unordered_map<std::string, std::vector<unsigned>> originMap_;
   std::unordered_map<std::string, std::vector<unsigned>> genreMap_;
 public:
+  enum CATEGORIA_BUSQUEDA
+  {
+    TITLE_PLOT,
+    DIRECTOR,
+    CAST,
+    YEAR,
+    ORIGIN,
+    GENRE
+  };
+
   void loadCSV(const std::string& filename);
+  std::vector<unsigned> search(std::string str, CATEGORIA_BUSQUEDA categ);
 };
 
 class User

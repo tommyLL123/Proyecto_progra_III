@@ -204,6 +204,10 @@ void SearchEngine::loadCSV(const std::string& filename) {
     std::cout << "Peliculas cargadas: " << movies_.size() << std::endl;
 }
 
+std::vector<unsigned> SearchEngine::search(std::string str, SearchEngine::CATEGORIA_BUSQUEDA categ)
+{
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// USER /////////////////////////////////////
