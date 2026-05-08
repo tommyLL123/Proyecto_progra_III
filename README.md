@@ -5,7 +5,7 @@
 * Giancarlo Davila Segovia
 * Tommy Bryan Loo Leon
 * Ignacio German Alvarez 
-*
+* Sebastian Alonso Gallegos Montejos
 
 ## Documentacion
 
