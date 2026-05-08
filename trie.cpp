@@ -62,7 +62,7 @@ std::vector<std::string> utils::parseCSVLine(const std::string &line)
             field.clear();
         }
         else {
-            if(c == '.' || c == '-'){
+            if(c == '.' || c == '-' || c == ':'){
                 c = ' ';
             }
 
@@ -171,6 +171,33 @@ void SearchEngine::loadCSV(const std::string& filename) {
             for (std::size_t i = 0; i < w.size(); i++) {
                 titlePlotTrie_.insert(w.substr(i), m.id_, 5);
             }
+        }
+
+        std::vector<std::string> directorWords = utils::tokenize(utils::normalize(m.director_));
+        std::vector<std::string> castWords = utils::tokenize(utils::normalize(m.cast_));
+
+        for (std::string &w : directorWords) {
+            for (std::size_t i = 0; i < w.size(); i++) {
+                directorTrie_.insert(w.substr(i), m.id_, 5);
+            }
+        }
+
+        for (std::string &w : castWords) {
+            for (std::size_t i = 0; i < w.size(); i++) {
+                castTrie_.insert(w.substr(i), m.id_, 5);
+            }
+        }
+
+        std::vector<std::string> originWords = utils::tokenize(utils::normalize(m.origin_));
+        std::vector<std::string> genreWords = utils::tokenize(utils::normalize(m.genre_));
+
+        // El operador [] de unordered_map encuentra el key y, si no existe, crea una nueva con esa key.
+        yearMap_[m.year_].push_back(m.id_);
+        for (std::string &w : originWords) {
+            originMap_[w].push_back(m.id_);
+        }
+        for (std::string &w : genreWords) {
+            genreMap_[w].push_back(m.id_);
         }
     }
 

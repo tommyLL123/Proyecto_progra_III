@@ -59,7 +59,7 @@ private:
   Trie directorTrie_;
   Trie castTrie_;
 
-  std::unordered_map<std::string, std::vector<unsigned>> yearMap_;
+  std::unordered_map<unsigned, std::vector<unsigned>> yearMap_;
   std::unordered_map<std::string, std::vector<unsigned>> originMap_;
   std::unordered_map<std::string, std::vector<unsigned>> genreMap_;
 public:
