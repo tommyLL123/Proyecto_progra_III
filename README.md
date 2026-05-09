@@ -127,71 +127,62 @@ Para cada línea del archivo:
 
 Cerrar archivo CSV
 
-## 4. ESTRUCTURA DE DATOS ESCOGIDA: TRIE
-La estructura de datos utilizada es un Trie, también conocido como árbol de prefijos.
+## 4. ESTRUCTURA DE DATOS ESCOGIDA: SUFFIX TREE
+La estructura de datos utilizada es un Suffix Tree, también conocido como árbol de sufijos.
 
-En esta estructura, cada nodo representa un carácter. Al recorrer los nodos desde la raíz, se forman palabras o partes de palabras. En el proyecto, se insertan las palabras obtenidas del título y la sinopsis de cada película.
+En esta estructura, cada nodo representa un carácter. Al recorrer los nodos desde la raíz, se forman palabras o partes de palabras. En el proyecto, se insertan las palabras obtenidas del título y la sinopsis de cada película, y tambien sus sufijos. La idea es insertar los sufijos es que, dada dos cadenas A y B:
+    A es una subcadena de B si y solo si A es un prefijo de un sufijo de B.
+Basicamente, insertar sufijos al arbol nos permite encontrar todas las cadenas que contienen una subcadena (subcadena que el usuario quiere usar para una busqueda).
 
-Cada palabra queda asociada al ID interno de la película de la que proviene. Además, para permitir búsquedas por sub-palabras, también se insertan los sufijos de cada palabra.
+Cada palabra (y sus sufijos) queda asociada los IDs de las películas de las que proviene.
   
 Por ejemplo, si se tiene la palabra “desembarcar”, se insertan partes como:
 
 desembarcar
+esembarcar
+sembarcar
 embarcar
+mbarcar
 barcar
 arcar
+rcar
 car
+ar
+r
 
 Así, si el usuario busca “bar”, el programa puede encontrar películas que contengan palabras como “desembarcar”.
 
-Se escogió el Trie porque permite realizar búsquedas rápidas por palabra, prefijo o sub-palabra, cumpliendo con el requisito principal del proyecto.
+Se escogió el Suffix Tree porque permite realizar búsquedas rápidas por palabra: O(m) donde m es el tamaño de la cadena a buscar.
 
-## 5. ALGORITMO DE INSERCIÓN
+Tambien estamos usando unordered_map's para hacer busqueda de cadenas mas concretas, como son el el genero de una pelicula o el año de salida. Utilizamos este contenedor ya su busqueda es O(1) la mayoria de las veces.
 
-Para insertar una palabra en el Trie, el programa recorre sus caracteres desde el primero hasta el último.
+## 5. MIEMBROS DE LOS NODOS DEL SUFFIX TREE
 
-Si un carácter no existe en el árbol, se crea un nuevo nodo. Luego, se avanza al siguiente carácter hasta completar la palabra.
+Cada nodo contiene:
+1) Un char que representa la letra de ese nodo.
+2) Un contenedor unordered_map de los hijos de el nodo actual. Se utilizo unordered_map ya que la busqueda es O(1) la mayoria de los casos, lo cual nos permite navegar el arbol de manera rapida y consistente.
+3) Un vector de IDs de peliculas asociadas a la palabra formada por el camino de un nodo despues de la raiz hasta el nodo actual. Si el vector es vacio sabemos que el nodo actual no es una hoja.
+4) Un vector de enteros llamado pesos que sirve para decidir cual pelicula encaja mas con la cadena dada por el usuario en busquedas. De momento, si la palabra aparece en el titulo tiene un peso de 10, mientras que palabras en el plot valen 5 puntos.
 
-En cada nodo se guarda el ID de la película relacionada, para que luego el programa pueda recuperar las películas que coinciden con una búsqueda.
+Los indices de pesos corresponden con los indices del vector de IDs, es decir, si el ID de una pelicula esta en el indice 5, el peso de la cadena asociada a esa pelicula tambien esta en el indice 5 de pesos.
 
-Pseudocódigo:
+## 6. ALGORITMO DE INSERCIÓN
 
-Entrada: palabra, idPelicula
+El algoritmo de insercion funciona asi:
+1) Se va recorriendo los nodos del arbol (desde la raiz), siguiendo el patron de la cadena dada por el usuario hasta que se agote la cadena.
+    a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo el arbol.
+    b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
+        I. Crear nodo hijo al nodo actual con el siguiente caracter de la cadena.
+2) Una vez se acabe la cadena:
+    a) Si el vector de IDs del nodo actual no contiene el ID de la pelicula asociada a la cadena, insertamos el ID de la pelicula al vector de IDs. Tambien insertamos el peso de la cadena al vector de pesos.
 
-nodoActual = raíz
-
-Para cada carácter de la palabra:
-    Si el carácter no existe:
-        Crear nuevo nodo
-
-    Avanzar al nodo del carácter
-
-    Guardar idPelicula en ese nodo
-
-Marcar fin de palabra
-
-## 6. ALGORITMO DE BÚSQUEDA
-La búsqueda empieza cuando el usuario ingresa una palabra, frase o sub-palabra.
-
-Primero, el programa normaliza la consulta. Luego la divide en palabras. Cada palabra se busca tanto en el índice de coincidencias exactas como en el Trie.
-
-Las películas encontradas reciben un puntaje y luego se ordenan de mayor a menor relevancia.
-
-Pseudocódigo:
-
-Entrada: consulta
-
-Normalizar consulta
-
-Separar consulta en palabras
-
-Para cada palabra:
-    Buscar coincidencia exacta
-    Buscar coincidencia parcial en el Trie
-    Sumar puntaje a las películas encontradas
-
-Ordenar películas por puntaje
-
-Mostrar resultados de cinco en cinco
-
-
+## 7. ALGORITMO DE BÚSQUEDA
+1) Proporcionada una cadena, recorremos los nodos del arbol (desde la raiz), siguiendo el patron de la cadena dada por el usuario hasta que se agote la cadena.
+    a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo el arbol.
+    b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
+        I. La palabra no esta en el arbol y, por lo tanto, no hay pelicula asociada a la palabra. Detener el algoritmo y devolver un vector de tuplas (ID, peso) vacio.
+2) Si la cadena se agoto:
+    a) Si el nodo actual no tiene hijos, devolver el vector de IDs y el vector pesos del nodo actual como un vector de tuplas (ID, peso).
+    b) Si el nodo actual tiene hijos, crear un vector de tuplas (ID, peso):
+        I. Recorrer el subarbol usando Depth-First Search, insertando los valores respectivos del nodo actual al vector de tuplas. Si el ID ya existe en el vector de tuplas, simplemente sumar los pesos.
+        II. Una vez recorrido el subarbol, devolver al usuario el vector de tuplas.
