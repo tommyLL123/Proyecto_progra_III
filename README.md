@@ -80,25 +80,35 @@ Para cada línea del archivo:
     Crear una nueva película
     Asignar un ID único a la película
 
+    Obtener año y verificar que es un entero
     Obtener título
+    Obtener origen
+    Obtener elenco
+    Obtener pagina de Wikipedia
     Obtener director
     Obtener género
     Obtener sinopsis
 
-    Normalizar título
-    Normalizar director
-    Normalizar género
-    Normalizar sinopsis
-
     Guardar la película en el vector de películas
 
-    Unir título y sinopsis en un solo texto
+    Preparar datos para contruir los Suffix Trees y Mapas necesarios
+    Normalizar y tokenizar título
+    Normalizar y tokenizar origen
+    Normalizar y tokenizar elenco
+    Normalizar y tokenizar pagina de Wikipedia
+    Normalizar y tokenizar director
+    Normalizar y tokenizar género
+    Normalizar y tokenizar sinopsis
 
-    Separar el texto en palabras
+    Usar tokens de titulo y sinopsis para contruir un Suffix Tree
+    Usar tokens de director para contruir un Suffix Tree
+    Usar tokens de elenco para contruir un Suffix Tree
+    Usar tokens de genero para contruir un Mapa No Ordenado
+    Usar tokens de origen para contruir un Mapa No Ordenado
+    Usar año para contruir un Mapa No Ordenado
 
     Para cada palabra obtenida:
-        Guardar la palabra en el índice de coincidencias exactas
-        Insertar todos los sufijos de la palabra en el Trie
+        Insertar todos los sufijos de la palabra en un trie o insertar la palabra en un mapa
         Asociar cada inserción con el ID de la película
 
     Aumentar el ID en 1
@@ -161,20 +171,21 @@ El algoritmo de insercion funciona asi:
 ## 7. ALGORITMO DE BÚSQUEDA
 1) Proporcionada una cadena, recorremos los nodos del arbol (desde la raiz), siguiendo el patron de la cadena dada por el usuario hasta que se agote la cadena.
 
-        a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo el arbol.
+    a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo el arbol.
 
-        b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
+    b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
+
         I. La palabra no esta en el arbol y, por lo tanto, no hay pelicula asociada a la palabra. Detener el algoritmo y devolver un vector de tuplas (ID, peso) vacio.
 
 2) Si la cadena se agoto:
 
-        a) Si el nodo actual no tiene hijos, devolver el vector de IDs y el vector pesos del nodo actual como un vector de tuplas (ID, peso).
+    a) Si el nodo actual no tiene hijos, devolver el vector de IDs y el vector pesos del nodo actual como un vector de tuplas (ID, peso).
 
-        b) Si el nodo actual tiene hijos, crear un vector de tuplas (ID, peso):
+    b) Si el nodo actual tiene hijos, crear un vector de tuplas (ID, peso):
 
-            I. Recorrer el subarbol usando Depth-First Search, insertando los valores respectivos del nodo actual al vector de tuplas. Si el ID ya existe en el vector de tuplas, simplemente sumar los pesos.
+        I. Recorrer el subarbol usando Depth-First Search, insertando los valores respectivos del nodo actual al vector de tuplas. Si el ID ya existe en el vector de tuplas, simplemente sumar los pesos.
 
-            II. Una vez recorrido el subarbol, devolver al usuario el vector de tuplas.
+        II. Una vez recorrido el subarbol, devolver al usuario el vector de tuplas.
 
 ## 8. PAGINACION DE RESULTADOS
 Los resultados se muestran de 5 en 5. El usuario puede navegar con los siguientes comandos:
