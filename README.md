@@ -243,6 +243,7 @@ Buscar: ghost ship
 2. the ghost writer
 
 (n) siguiente | (p) anterior | (s) seleccionar | (q) nueva busqueda: s
+
 Indice: 0
 
 --- PELICULA SELECCIONADA ---
@@ -252,4 +253,5 @@ Genero: horror
 Sinopsis: a mysterious ghost ship appears in the ocean...
 
 (l) like | (w) watch later | (b) volver: l
+
 Pelicula marcada con Like.
