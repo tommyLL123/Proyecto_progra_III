@@ -191,7 +191,6 @@ Los resultados se muestran de 5 en 5. El usuario puede navegar con los siguiente
 - Like: Se guarda el ID de la pelicula en un set<int>
 - Ver mas tarde: Se guarda en otro set<int>
 - Persistencia: Durante la sesion (al cerrar el programa se pierden)
-- Al iniciar el programa, se muestran automaticamente las peliculas guardadas en "Ver mas tarde"
 
 
 ## 10. BUSQUEDA POR TAGS
