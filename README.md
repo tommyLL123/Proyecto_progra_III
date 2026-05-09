@@ -178,7 +178,9 @@ El algoritmo de insercion funciona asi:
 
 ## 7. ALGORITMO DE BÚSQUEDA
 1) Proporcionada una cadena, recorremos los nodos del arbol (desde la raiz), siguiendo el patron de la cadena dada por el usuario hasta que se agote la cadena.
+
     a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo el arbol.
+    
     b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
         I. La palabra no esta en el arbol y, por lo tanto, no hay pelicula asociada a la palabra. Detener el algoritmo y devolver un vector de tuplas (ID, peso) vacio.
 2) Si la cadena se agoto:
