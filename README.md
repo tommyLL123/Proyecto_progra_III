@@ -170,21 +170,30 @@ Los indices de pesos corresponden con los indices del vector de IDs, es decir, s
 
 El algoritmo de insercion funciona asi:
 1) Se va recorriendo los nodos del arbol (desde la raiz), siguiendo el patron de la cadena dada por el usuario hasta que se agote la cadena.
+
     a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo el arbol.
+
     b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
         I. Crear nodo hijo al nodo actual con el siguiente caracter de la cadena.
+
 2) Una vez se acabe la cadena:
+
     a) Si el vector de IDs del nodo actual no contiene el ID de la pelicula asociada a la cadena, insertamos el ID de la pelicula al vector de IDs. Tambien insertamos el peso de la cadena al vector de pesos.
 
 ## 7. ALGORITMO DE BÚSQUEDA
 1) Proporcionada una cadena, recorremos los nodos del arbol (desde la raiz), siguiendo el patron de la cadena dada por el usuario hasta que se agote la cadena.
 
-    a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo el arbol.
-    
-    b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
+        a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo el arbol.
+
+        b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
         I. La palabra no esta en el arbol y, por lo tanto, no hay pelicula asociada a la palabra. Detener el algoritmo y devolver un vector de tuplas (ID, peso) vacio.
+
 2) Si la cadena se agoto:
-    a) Si el nodo actual no tiene hijos, devolver el vector de IDs y el vector pesos del nodo actual como un vector de tuplas (ID, peso).
-    b) Si el nodo actual tiene hijos, crear un vector de tuplas (ID, peso):
-        I. Recorrer el subarbol usando Depth-First Search, insertando los valores respectivos del nodo actual al vector de tuplas. Si el ID ya existe en el vector de tuplas, simplemente sumar los pesos.
-        II. Una vez recorrido el subarbol, devolver al usuario el vector de tuplas.
+
+        a) Si el nodo actual no tiene hijos, devolver el vector de IDs y el vector pesos del nodo actual como un vector de tuplas (ID, peso).
+
+        b) Si el nodo actual tiene hijos, crear un vector de tuplas (ID, peso):
+
+            I. Recorrer el subarbol usando Depth-First Search, insertando los valores respectivos del nodo actual al vector de tuplas. Si el ID ya existe en el vector de tuplas, simplemente sumar los pesos.
+
+            II. Una vez recorrido el subarbol, devolver al usuario el vector de tuplas.
