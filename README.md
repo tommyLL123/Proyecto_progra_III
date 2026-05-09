@@ -197,3 +197,58 @@ El algoritmo de insercion funciona asi:
             I. Recorrer el subarbol usando Depth-First Search, insertando los valores respectivos del nodo actual al vector de tuplas. Si el ID ya existe en el vector de tuplas, simplemente sumar los pesos.
 
             II. Una vez recorrido el subarbol, devolver al usuario el vector de tuplas.
+
+## 8. PAGINACION DE RESULTADOS
+Los resultados se muestran de 5 en 5. El usuario puede navegar con los siguientes comandos:
+
+| Comando | Accion                                        |
+|---------|-----------------------------------------------|
+| n       | Siguiente pagina (siguientes 5 resultados)    |
+| p       | Pagina anterior                               |
+| s       | Seleccionar una pelicula por su indice        |
+| q       | Volver a nueva busqueda                       |
+
+
+## 9. LIKE Y VER MAS TARDE
+- Like: Se guarda el ID de la pelicula en un set<int>
+- Ver mas tarde: Se guarda en otro set<int>
+- Persistencia: Durante la sesion (al cerrar el programa se pierden)
+- Al iniciar el programa, se muestran automaticamente las peliculas guardadas en "Ver mas tarde"
+
+
+## 10. BUSQUEDA POR TAGS
+El programa permite buscar por:
+- Genero (campo genre)
+- Director (campo director)
+
+Actualmente la busqueda principal es por palabra/frase en titulo y sinopsis. La busqueda por tags se realiza comparando directamente con los campos normalizados.
+
+
+## 11. INTERFAZ DEL USUARIO
+La interfaz es por consola con el siguiente flujo:
+
+Inicio del programa:
+--- WATCH LATER ---
+No hay peliculas guardadas en Ver mas tarde.
+
+Buscar: 
+
+Ejemplo de busqueda:
+Buscar: ghost ship
+
+--- RESULTADOS ---
+0. ghost ship
+1. ghost rider
+2. the ghost writer
+
+(n) siguiente | (p) anterior | (s) seleccionar | (q) nueva busqueda: s
+Indice: 0
+
+--- PELICULA SELECCIONADA ---
+Titulo: ghost ship
+Director: steve beck
+Genero: horror
+Sinopsis: a mysterious ghost ship appears in the ocean...
+
+(l) like | (w) watch later | (b) volver: l
+Pelicula marcada con Like.
