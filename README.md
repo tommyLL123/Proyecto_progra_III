@@ -228,6 +228,7 @@ Actualmente la busqueda principal es por palabra/frase en titulo y sinopsis. La 
 La interfaz es por consola con el siguiente flujo:
 
 Inicio del programa:
+
 --- WATCH LATER ---
 No hay peliculas guardadas en Ver mas tarde.
 
