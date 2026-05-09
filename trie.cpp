@@ -161,6 +161,10 @@ void SearchEngine::loadCSV(const std::string& filename) {
 
     unsigned curr_id = 0;
 
+    // Existe un bug donde loadCSV() carga mas peliculas de las que estan en 
+    // el csv. Esto es porque en la columna Plot a veces hay caracteres '\n'
+    // y la funcion getline() toma este char como delimitador. Esto se arreglara.
+    // Aparte de eso, el codigo funciona como deberia.
     while(std::getline(file, line)) {
         std::vector<std::string> fields = utils::parseCSVLine(line);
 

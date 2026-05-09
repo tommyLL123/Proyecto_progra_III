@@ -7,32 +7,6 @@
 * Ignacio German Alvarez 
 * Sebastian Alonso Gallegos Montejos
 
-## Documentacion
-
-# Enunciado del proyecto (BORRAR EN EL ULTIMO COMMIT)
-
-## Plataforma de Streaming
-El objetivo del proyecto final es implementar una plataforma de **streaming**. Un programa que administre la **búsqueda y visualización** de la sinopsis de películas. Para ello se debe implementar las siguientes operaciones:
-
-* El programa debe leer la base de datos en forma **.csv**. La base de datos puede ser descargada desde el siguiente [link] (https://drive.google.com/file/d/1UJkRuCF8UD92W_DT7S8dXCYzaR_9wqB_/view?usp=sharing). El grupo es responsable del **pre-procesamiento de los datos**.
-* El programa debe cargar el contenido corregido del archivo en un **Árbol** que permita la búsqueda rápida de una película. Los caracteres (letras y números) deben ser los valores que se almacenen en los nodos del Árbol. Puede utilizar como referencia estructuras como los **Tries**, **Suffix Trees**, etc." La elección del tipo de Árbol queda a criterio del grupo y debe ser justificada y documentada en el repositorio.
-* Para buscar una película se debe utilizar una **palabra, frase o sub-palabra**. Ejemplo:
-  - Si se busca la palabra "barco", el programa debería encontrar todas las películas en las cuales la palabra "barco" este en el título o sinópsis.
-  - Si se busca la frase "barco fantasma", el programa debería encontrar todas las películas en las cuales las palabras "barco" y/o "fantasma" este en el título o sinópsis.
-  - Si se busca el string "bar", el programa debería encontrar todas las películas en las cuales el string "bar" este en el título o sinópsis (El string "bar" podría ser parte de una palabra).
-* También se debe poder buscar películas por un **Tag**: director, casting, generero, etc. 
-* Al buscar películas deben de aparecer la cinco más **importantes** y una opción para visualizar las siguientes cinco coincidencias. El grupo **debe implementar un algoritmo** para determinar que pélicula tiene más importancia en una búsqueda.
-* Al seleccionar una película, se debe visualizar la sinopsis y las opciones **Like** y **Ver más tarde** .
-* Al iniciar el programa la plataforma debería mostrar las películas que fueron añadidas en **Ver más tarde**. Además, se debe visualizar las películas similares a las que el usuario les dio **Like** (implemente su propio algoritmo).
-
-## Requisitos
-* Grupos de cinco personas como máximo y de tres como mínimo. No se aceptarán grupos de dos o una persona.
-* Subir el programa a un repositorio en Github. **En el repositorio debe de estar toda la documentación sobre el proyecto**.
-* La exposición del proyecto es **Presencial**. En la presentación de la semana 8, las exposiciones son con respecto a los avances que hayan conseguido.
-* Todo el programa, desde la lectura hasta la búsqueda de palabras, debe estar en C++.
-* Cumplir con la rúbrica del proyecto.
-* Fecha de presentación: La semana 8 (avance) y la semana 16 (final).
-
 
 ## 1. PREPROCESAMIENTO DE LOS DATOS
 El preprocesamiento realiza los siguientes pasos:
@@ -41,15 +15,19 @@ El preprocesamiento realiza los siguientes pasos:
 2. Saltar la primera línea, que contiene los encabezados.
 3. Separar correctamente los campos del CSV, respetando comas dentro de comillas.
 4. Obtener las columnas necesarias:
+   - Release Year
    - Title
+   - Origin/Ethnicity
    - Director
+   - Cast
    - Genre
+   - Wiki Page
    - Plot
-5. Convertir el texto a minúsculas.
-6. Eliminar caracteres especiales.
+5. Convertir el texto a minúsculas para todos los campos menos el año de salida.
+6. Eliminar caracteres especiales tal como la '.', '-', ':'.
 7. Mantener solo letras, números y espacios.
-8. Separar el texto en palabras individuales.
-9. Dejar las palabras listas para ser insertadas en el Trie.
+8. Separar el texto en palabras individuales (tokenizar).
+9. Dejar las palabras listas para ser insertadas en el arbol.
 
 ## 2. PALABRAS LISTAS PARA SER INGRESADAS A LA ESTRUCTURA
 
@@ -62,17 +40,17 @@ Sinopsis: A mysterious ship appears in the ocean.
 Género: Horror
 Director: Steve Beck
 
-Las palabras listas para la estructura serían:
+Las palabras listas para el Trie de titulo-sinopsis serian:
 
-ghost
-ship
-a
-mysterious
-ship
-appears
-in
-the
-ocean
+    ghost
+    ship
+    a
+    mysterious
+    ship
+    appears
+    in
+    the
+    ocean
 
 Cada palabra se asocia al ID de la película correspondiente.
 
@@ -138,23 +116,23 @@ Cada palabra (y sus sufijos) queda asociada los IDs de las películas de las que
   
 Por ejemplo, si se tiene la palabra “desembarcar”, se insertan partes como:
 
-desembarcar
-esembarcar
-sembarcar
-embarcar
-mbarcar
-barcar
-arcar
-rcar
-car
-ar
-r
+    desembarcar
+    esembarcar
+    sembarcar
+    embarcar
+    mbarcar
+    barcar
+    arcar
+    rcar
+    car
+    ar
+    r
 
 Así, si el usuario busca “bar”, el programa puede encontrar películas que contengan palabras como “desembarcar”.
 
 Se escogió el Suffix Tree porque permite realizar búsquedas rápidas por palabra: O(m) donde m es el tamaño de la cadena a buscar.
 
-Tambien estamos usando unordered_map's para hacer busqueda de cadenas mas concretas, como son el el genero de una pelicula o el año de salida. Utilizamos este contenedor ya su busqueda es O(1) la mayoria de las veces.
+    Tambien estamos usando unordered_map's para hacer busqueda de cadenas mas concretas, como son el el genero de una pelicula o el año de salida. Utilizamos este contenedor ya su busqueda es O(1) la mayoria de las veces.
 
 ## 5. MIEMBROS DE LOS NODOS DEL SUFFIX TREE
 
@@ -164,21 +142,21 @@ Cada nodo contiene:
 3) Un vector de IDs de peliculas asociadas a la palabra formada por el camino de un nodo despues de la raiz hasta el nodo actual. Si el vector es vacio sabemos que el nodo actual no es una hoja.
 4) Un vector de enteros llamado pesos que sirve para decidir cual pelicula encaja mas con la cadena dada por el usuario en busquedas. De momento, si la palabra aparece en el titulo tiene un peso de 10, mientras que palabras en el plot valen 5 puntos.
 
-Los indices de pesos corresponden con los indices del vector de IDs, es decir, si el ID de una pelicula esta en el indice 5, el peso de la cadena asociada a esa pelicula tambien esta en el indice 5 de pesos.
+    Los indices de pesos corresponden con los indices del vector de IDs, es decir, si el ID de una pelicula esta en el indice 5, el peso de la cadena asociada a esa pelicula tambien esta en el indice 5 de pesos.
 
 ## 6. ALGORITMO DE INSERCIÓN
 
 El algoritmo de insercion funciona asi:
 1) Se va recorriendo los nodos del arbol (desde la raiz), siguiendo el patron de la cadena dada por el usuario hasta que se agote la cadena.
 
-    a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo el arbol.
+        a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo el arbol.
 
-    b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
-        I. Crear nodo hijo al nodo actual con el siguiente caracter de la cadena.
+        b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
+            I. Crear nodo hijo al nodo actual con el siguiente caracter de la cadena.
 
 2) Una vez se acabe la cadena:
 
-    a) Si el vector de IDs del nodo actual no contiene el ID de la pelicula asociada a la cadena, insertamos el ID de la pelicula al vector de IDs. Tambien insertamos el peso de la cadena al vector de pesos.
+        a) Si el vector de IDs del nodo actual no contiene el ID de la pelicula asociada a la cadena, insertamos el ID de la pelicula al vector de IDs. Tambien insertamos el peso de la cadena al vector de pesos.
 
 ## 7. ALGORITMO DE BÚSQUEDA
 1) Proporcionada una cadena, recorremos los nodos del arbol (desde la raiz), siguiendo el patron de la cadena dada por el usuario hasta que se agote la cadena.
