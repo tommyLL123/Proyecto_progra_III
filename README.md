@@ -228,9 +228,13 @@ Buscar: ghost ship
 Indice: 0
 
 --- PELICULA SELECCIONADA ---
+
 Titulo: ghost ship
+
 Director: steve beck
+
 Genero: horror
+
 Sinopsis: a mysterious ghost ship appears in the ocean...
 
 (l) like | (w) watch later | (b) volver: l
