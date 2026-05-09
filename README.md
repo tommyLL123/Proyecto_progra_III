@@ -227,9 +227,9 @@ Actualmente la busqueda principal es por palabra/frase en titulo y sinopsis. La 
 ## 11. INTERFAZ DEL USUARIO
 La interfaz es por consola con el siguiente flujo:
 
-Inicio del programa:
 
 --- WATCH LATER ---
+
 No hay peliculas guardadas en Ver mas tarde.
 
 Buscar: 
