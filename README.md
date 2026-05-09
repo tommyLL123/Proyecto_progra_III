@@ -236,9 +236,11 @@ No hay peliculas guardadas en Ver mas tarde.
 Buscar: 
 
 Ejemplo de busqueda:
+
 Buscar: ghost ship
 
 --- RESULTADOS ---
+
 0. ghost ship
 1. ghost rider
 2. the ghost writer
