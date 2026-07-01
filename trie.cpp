@@ -244,6 +244,66 @@ std::vector<std::pair<unsigned, unsigned>> Trie::search(const std::string &word)
 /////////////////////////////// SEARCH ENGINE /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+///////////////////////////////// TEMPLATES ///////////////////////////////////
+template<typename TrieType>
+void insertFullWords(TrieType& trie,
+                     const std::vector<std::string>& words,
+                     unsigned movieId,
+                     unsigned peso)
+{
+    std::unordered_set<std::string> inserted;
+
+    for (const std::string& w : words)
+    {
+        if (!w.empty() && inserted.insert(w).second)
+        {
+            trie.insert(w, movieId, peso);
+        }
+    }
+}
+
+template<typename TrieType>
+void insertTitleSuffixes(TrieType& trie,
+                         const std::vector<std::string>& words,
+                         unsigned movieId,
+                         unsigned peso)
+{
+    std::unordered_set<std::string> inserted;
+
+    for (const std::string& w : words)
+    {
+        if (w.empty())
+            continue;
+
+        for (size_t i = 0; i < w.size(); i++)
+        {
+            if (i != 0 && w.size() - i < 3)
+                continue;
+
+            std::string suffix = w.substr(i);
+
+            if (inserted.insert(suffix).second)
+            {
+                trie.insert(suffix, movieId, peso);
+            }
+        }
+    }
+}
+
+template<typename MapType>
+void fillMap(MapType& map,
+            const std::vector<std::string>& words,
+            unsigned movieId)
+{
+    for (const auto& w : words)
+    {
+        map[w].push_back(movieId);
+    }
+}
+
+///////////////////////////////// TEMPLATES ///////////////////////////////////
+
+
 void SearchEngine::loadCSV(const std::string& filename) {
     std::ifstream file(filename);
 
@@ -258,45 +318,6 @@ void SearchEngine::loadCSV(const std::string& filename) {
     readCSVRecord(file, record);
 
     unsigned curr_id = 0;
-
-    auto insertTitleSuffixes = [](Trie &trie,
-                                  const std::vector<std::string> &words,
-                                  unsigned movieId,
-                                  unsigned peso) {
-        std::unordered_set<std::string> inserted;
-
-        for (const std::string &w : words) {
-            if (w.empty()) {
-                continue;
-            }
-
-            for (std::size_t i = 0; i < w.size(); ++i) {
-                // La palabra completa siempre se inserta.
-                // Los sufijos muy pequeños se omiten porque generan demasiadas coincidencias irrelevantes.
-                if (i != 0 && w.size() - i < 3) {
-                    continue;
-                }
-
-                std::string suffix = w.substr(i);
-                if (inserted.insert(suffix).second) {
-                    trie.insert(suffix, movieId, peso);
-                }
-            }
-        }
-    };
-
-    auto insertFullWords = [](Trie &trie,
-                              const std::vector<std::string> &words,
-                              unsigned movieId,
-                              unsigned peso) {
-        std::unordered_set<std::string> inserted;
-
-        for (const std::string &w : words) {
-            if (!w.empty() && inserted.insert(w).second) {
-                trie.insert(w, movieId, peso);
-            }
-        }
-    };
 
     while (readCSVRecord(file, record)) {
         std::vector<std::string> fields = utils::parseCSVLine(record);
@@ -344,15 +365,12 @@ void SearchEngine::loadCSV(const std::string& filename) {
         insertFullWords(directorTrie_, directorWords, m.id_, 5);
         insertFullWords(castTrie_, castWords, m.id_, 5);
 
+
+
         yearMap_[m.year_].push_back(m.id_);
 
-        for (const std::string &w : originWords) {
-            originMap_[w].push_back(m.id_);
-        }
-
-        for (const std::string &w : genreWords) {
-            genreMap_[w].push_back(m.id_);
-        }
+        fillMap(originMap_, originWords, m.id_);
+        fillMap(genreMap_, genreWords, m.id_);
     }
 
     std::cout << "Peliculas cargadas: " << movies_.size() << std::endl;
@@ -481,4 +499,3 @@ void User::addwatchLater(unsigned movieId)
 {
     watchLater_.insert(movieId);
 }
-
