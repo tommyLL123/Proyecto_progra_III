@@ -55,7 +55,6 @@ public:
   Trie();
 
   void insert(const std::string &word, unsigned movieId, unsigned peso);
-  void insert(const std::string &word, const std::unordered_map<unsigned, unsigned> &movieScores);
   std::vector<std::pair<unsigned, unsigned>> search(const std::string &word);
 };
 
