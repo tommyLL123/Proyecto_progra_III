@@ -175,7 +175,7 @@ void Trie::insert(const std::string &word, unsigned movieId, unsigned peso)
         return;
     }
 
-    actual->scores_[movieId] += peso;
+    actual->scores_[movieId] += peso; // es el score garantizado ser 0 la primera vez?
 }
 
 void Trie::insert(const std::string &word, const std::unordered_map<unsigned, unsigned> &movieScores)
