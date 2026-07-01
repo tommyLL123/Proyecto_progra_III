@@ -252,102 +252,108 @@ void SearchEngine::loadCSV(const std::string& filename) {
         return;
     }
 
-    std::string line;
+    std::string record;
 
-    // Saltar encabezado
-    std::getline(file, line);
+    // Saltar encabezado.
+    readCSVRecord(file, record);
 
     unsigned curr_id = 0;
 
-    // Existe un bug donde loadCSV() carga mas peliculas de las que estan en 
-    // el csv. Esto es porque en la columna Plot a veces hay caracteres '\n'
-    // y la funcion getline() toma este char como delimitador. Esto se arreglara.
-    // Aparte de eso, el codigo funciona como deberia.
-   while (std::getline(file, line))
-{
-    // Si el número de comillas es impar, significa que
-    // el registro continúa en la siguiente línea.
-int quoteCount = std::count(line.begin(), line.end(), '"');
+    auto insertTitleSuffixes = [](Trie &trie,
+                                  const std::vector<std::string> &words,
+                                  unsigned movieId,
+                                  unsigned peso) {
+        std::unordered_set<std::string> inserted;
 
-while (quoteCount % 2 != 0) {
-    std::string extra;
+        for (const std::string &w : words) {
+            if (w.empty()) {
+                continue;
+            }
 
-    if (!std::getline(file, extra))
-        break;
+            for (std::size_t i = 0; i < w.size(); ++i) {
+                // La palabra completa siempre se inserta.
+                // Los sufijos muy pequeños se omiten porque generan demasiadas coincidencias irrelevantes.
+                if (i != 0 && w.size() - i < 3) {
+                    continue;
+                }
 
-    line += '\n';
-    line += extra;
+                std::string suffix = w.substr(i);
+                if (inserted.insert(suffix).second) {
+                    trie.insert(suffix, movieId, peso);
+                }
+            }
+        }
+    };
 
-    quoteCount += std::count(extra.begin(), extra.end(), '"');
-}
-    std::vector<std::string> fields = utils::parseCSVLine(line);
+    auto insertFullWords = [](Trie &trie,
+                              const std::vector<std::string> &words,
+                              unsigned movieId,
+                              unsigned peso) {
+        std::unordered_set<std::string> inserted;
 
-    // Dataset esperado:
-    // 0 Release Year
-    // 1 Title
-    // 2 Origin/Ethnicity
-    // 3 Director
-    // 4 Cast
-    // 5 Genre
-    // 6 Wiki Page
-    // 7 Plot
+        for (const std::string &w : words) {
+            if (!w.empty() && inserted.insert(w).second) {
+                trie.insert(w, movieId, peso);
+            }
+        }
+    };
 
-    if (fields.size() < 8)
-        continue;
+    while (readCSVRecord(file, record)) {
+        std::vector<std::string> fields = utils::parseCSVLine(record);
 
-    Movie m;
+        // Dataset esperado:
+        // 0 Release Year
+        // 1 Title
+        // 2 Origin/Ethnicity
+        // 3 Director
+        // 4 Cast
+        // 5 Genre
+        // 6 Wiki Page
+        // 7 Plot
+        if (fields.size() < 8) {
+            continue;
+        }
 
-    m.id_ = curr_id++;
-    m.year_ = utils::is_num(fields[0]) ? std::stoul(fields[0]) : 0;
-    m.title_ = fields[1];
-    m.origin_ = fields[2];
-    m.director_ = fields[3];
-    m.cast_ = fields[4];
-    m.genre_ = fields[5];
-    m.wiki_ = fields[6];
-    m.plot_ = fields[7];
+        Movie m;
+        m.id_ = curr_id++;
+        m.year_ = utils::is_num(fields[0]) ? std::stoul(fields[0]) : 0;
+        m.title_ = fields[1];
+        m.origin_ = fields[2];
+        m.director_ = fields[3];
+        m.cast_ = fields[4];
+        m.genre_ = fields[5];
+        m.wiki_ = fields[6];
+        m.plot_ = fields[7];
 
-    movies_.push_back(m);
+        movies_.push_back(m);
 
-    std::vector<std::string> titleWords =
-        utils::tokenize(utils::normalize(m.title_));
-    std::vector<std::string> plotWords =
-        utils::tokenize(utils::normalize(m.plot_));
+        std::vector<std::string> titleWords = utils::tokenize(utils::normalize(m.title_));
+        std::vector<std::string> plotWords = utils::tokenize(utils::normalize(m.plot_));
+        std::vector<std::string> directorWords = utils::tokenize(utils::normalize(m.director_));
+        std::vector<std::string> castWords = utils::tokenize(utils::normalize(m.cast_));
+        std::vector<std::string> originWords = utils::tokenize(utils::normalize(m.origin_));
+        std::vector<std::string> genreWords = utils::tokenize(utils::normalize(m.genre_));
 
-    for (std::string &w : titleWords)
-        for (size_t i = 0; i < w.size(); i++)
-            titlePlotTrie_.insert(w.substr(i), m.id_, 10);
+        // En titulos usamos sufijos para soportar sub-palabras de forma rapida con el Trie.
+        insertTitleSuffixes(titlePlotTrie_, titleWords, m.id_, 10);
 
-    for (std::string &w : plotWords)
-        for (size_t i = 0; i < w.size(); i++)
-            titlePlotTrie_.insert(w.substr(i), m.id_, 5);
+        // En sinopsis se insertan palabras completas para no hacer demasiado pesada la carga.
+        // Las sub-palabras de la sinopsis se verifican en SearchEngine::search con escaneo del texto.
+        insertFullWords(titlePlotTrie_, plotWords, m.id_, 5);
 
-    std::vector<std::string> directorWords =
-        utils::tokenize(utils::normalize(m.director_));
-    std::vector<std::string> castWords =
-        utils::tokenize(utils::normalize(m.cast_));
+        insertFullWords(directorTrie_, directorWords, m.id_, 5);
+        insertFullWords(castTrie_, castWords, m.id_, 5);
 
-    for (std::string &w : directorWords)
-        for (size_t i = 0; i < w.size(); i++)
-            directorTrie_.insert(w.substr(i), m.id_, 5);
+        yearMap_[m.year_].push_back(m.id_);
 
-    for (std::string &w : castWords)
-        for (size_t i = 0; i < w.size(); i++)
-            castTrie_.insert(w.substr(i), m.id_, 5);
+        for (const std::string &w : originWords) {
+            originMap_[w].push_back(m.id_);
+        }
 
-    std::vector<std::string> originWords =
-        utils::tokenize(utils::normalize(m.origin_));
-    std::vector<std::string> genreWords =
-        utils::tokenize(utils::normalize(m.genre_));
-
-    yearMap_[m.year_].push_back(m.id_);
-
-    for (std::string &w : originWords)
-        originMap_[w].push_back(m.id_);
-
-    for (std::string &w : genreWords)
-        genreMap_[w].push_back(m.id_);
-}
+        for (const std::string &w : genreWords) {
+            genreMap_[w].push_back(m.id_);
+        }
+    }
 
     std::cout << "Peliculas cargadas: " << movies_.size() << std::endl;
 }
@@ -357,7 +363,6 @@ std::vector<unsigned> SearchEngine::search(std::string str, SearchEngine::CATEGO
     std::vector<unsigned> finalResults;
     std::unordered_map<unsigned, unsigned> scoreByMovie;
 
-    // Normalizamos la búsqueda del usuario.
     std::string normalized = utils::normalize(str);
     std::vector<std::string> words = utils::tokenize(normalized);
 
@@ -365,7 +370,6 @@ std::vector<unsigned> SearchEngine::search(std::string str, SearchEngine::CATEGO
         return finalResults;
     }
 
-    // Búsqueda en Trie: título/sinopsis, director o cast.
     if (categ == TITLE_PLOT || categ == DIRECTOR || categ == CAST) {
         Trie* selectedTrie = nullptr;
 
@@ -380,78 +384,89 @@ std::vector<unsigned> SearchEngine::search(std::string str, SearchEngine::CATEGO
         }
 
         for (const std::string& word : words) {
-            std::vector<std::pair<unsigned, unsigned>> partialResults =
-                selectedTrie->search(word);
+            std::vector<std::pair<unsigned, unsigned>> partialResults = selectedTrie->search(word);
 
             for (const auto& result : partialResults) {
-                unsigned movieId = result.first;
-                unsigned peso = result.second;
+                scoreByMovie[result.first] += result.second;
+            }
+        }
 
-                scoreByMovie[movieId] += peso;
+        // Para TITLE_PLOT, además del Trie, verificamos sub-palabras dentro de la sinopsis.
+        // Esto evita que la carga sea excesivamente lenta con el CSV completo.
+        if (categ == TITLE_PLOT) {
+            for (const Movie &m : movies_) {
+                std::string normalizedTitle = utils::normalize(m.title_);
+                std::string normalizedPlot = utils::normalize(m.plot_);
+
+                for (const std::string &word : words) {
+                    if (normalizedTitle.find(word) != std::string::npos) {
+                        scoreByMovie[m.id_] += 10;
+                    }
+
+                    if (normalizedPlot.find(word) != std::string::npos) {
+                        scoreByMovie[m.id_] += 5;
+                    }
+                }
             }
         }
     }
-
-    // Búsqueda por año.
     else if (categ == YEAR) {
         if (utils::is_num(words[0])) {
             unsigned year = std::stoul(words[0]);
 
-            if (yearMap_.find(year) != yearMap_.end()) {
-                for (unsigned movieId : yearMap_[year]) {
+            auto it = yearMap_.find(year);
+            if (it != yearMap_.end()) {
+                for (unsigned movieId : it->second) {
                     scoreByMovie[movieId] += 20;
                 }
             }
         }
     }
-
-    // Búsqueda por origen.
     else if (categ == ORIGIN) {
         for (const std::string& word : words) {
-            if (originMap_.find(word) != originMap_.end()) {
-                for (unsigned movieId : originMap_[word]) {
+            auto it = originMap_.find(word);
+            if (it != originMap_.end()) {
+                for (unsigned movieId : it->second) {
                     scoreByMovie[movieId] += 15;
                 }
             }
         }
     }
-
-    // Búsqueda por género.
     else if (categ == GENRE) {
         for (const std::string& word : words) {
-            if (genreMap_.find(word) != genreMap_.end()) {
-                for (unsigned movieId : genreMap_[word]) {
+            auto it = genreMap_.find(word);
+            if (it != genreMap_.end()) {
+                for (unsigned movieId : it->second) {
                     scoreByMovie[movieId] += 15;
                 }
             }
         }
     }
 
-    // Pasamos el unordered_map a un vector para ordenar por importancia.
     std::vector<std::pair<unsigned, unsigned>> orderedResults;
 
     for (const auto& item : scoreByMovie) {
         orderedResults.push_back(item);
     }
 
-    // Ordenar de mayor a menor puntaje.
     std::sort(
         orderedResults.begin(),
         orderedResults.end(),
         [](const std::pair<unsigned, unsigned>& a,
            const std::pair<unsigned, unsigned>& b) {
-            return a.second > b.second;
+            if (a.second != b.second) {
+                return a.second > b.second;
+            }
+            return a.first < b.first;
         }
     );
 
-    // Nos quedamos solo con los IDs.
     for (const auto& item : orderedResults) {
         finalResults.push_back(item.first);
     }
 
     return finalResults;
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// USER /////////////////////////////////////
