@@ -13,9 +13,9 @@
 
 bool utils::is_num(const std::string &str)
 {
-    for(auto i = str.cbegin(); i != str.cend(); ++i)
+    for (unsigned char c : str)
     {
-        if(!std::isdigit(*i))
+        if (!std::isdigit(c))
         {
             return false;
         }
@@ -29,8 +29,12 @@ std::string utils::normalize(const std::string &text)
     std::string res;
 
     for (unsigned char c : text) {
-        if (std::isalnum(c) || c == ' ') {
-            res += std::tolower(c);
+        if (std::isalnum(c)) {
+            res += static_cast<char>(std::tolower(c));
+        }
+        else {
+            // Se convierte puntuacion a espacio para separar correctamente palabras.
+            res += ' ';
         }
     }
 
@@ -50,43 +54,75 @@ std::vector<std::string> utils::tokenize(const std::string &text)
     return tokens;
 }
 
-
 std::vector<std::string> utils::parseCSVLine(const std::string &line)
 {
     std::vector<std::string> fields;
     std::string field;
     bool inQuotes = false;
 
-    for (size_t i = 0; i < line.size(); i++)
-    {
+    for (std::size_t i = 0; i < line.size(); ++i) {
         char c = line[i];
 
-        if (c == '"')
-        {
-            if (inQuotes && i + 1 < line.size() && line[i + 1] == '"')
-            {
+        if (c == '"') {
+            // CSV usa "" para representar una comilla dentro del campo.
+            if (inQuotes && i + 1 < line.size() && line[i + 1] == '"') {
                 field += '"';
-                i++;
+                ++i;
             }
-            else
-            {
+            else {
                 inQuotes = !inQuotes;
             }
         }
-        else if (c == ',' && !inQuotes)
-        {
+        else if (c == ',' && !inQuotes) {
             fields.push_back(field);
             field.clear();
         }
-        else
-        {
+        else {
             field += c;
         }
     }
 
     fields.push_back(field);
-
     return fields;
+}
+
+static bool csvRecordIsComplete(const std::string &record)
+{
+    bool inQuotes = false;
+
+    for (std::size_t i = 0; i < record.size(); ++i) {
+        if (record[i] == '"') {
+            if (inQuotes && i + 1 < record.size() && record[i + 1] == '"') {
+                ++i;
+            }
+            else {
+                inQuotes = !inQuotes;
+            }
+        }
+    }
+
+    return !inQuotes;
+}
+
+static bool readCSVRecord(std::ifstream &file, std::string &record)
+{
+    record.clear();
+    std::string line;
+    bool firstLine = true;
+
+    while (std::getline(file, line)) {
+        if (!firstLine) {
+            record += '\n';
+        }
+        record += line;
+        firstLine = false;
+
+        if (csvRecordIsComplete(record)) {
+            return true;
+        }
+    }
+
+    return !record.empty();
 }
 
 
@@ -115,46 +151,124 @@ Trie::Trie()
 
 void Trie::insert(const std::string &word, unsigned movieId, unsigned peso)
 {
-    /* Pseudocodigo de insercion
-    Este es un Suffix Tree en teoria pero el proceso de encontrar todos los sufijos
-    de una palabra es realizado en SearchEngine::LoadCSV() de momento. Insert() recibe
-    ya los sufijos de la palabra a insertar.
+    if (word.empty()) {
+        return;
+    }
 
-    El algoritmo de insercion funciona asi:
-    1) Se va recorriendo los nodos del arbol (desde la raiz), siguiendo el patron
-       de la cadena dada por el usuario hasta que se agote la cadena.
-      a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo
-         el arbol.
-      b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
-        I. Crear nodo hijo al nodo actual con el siguiente caracter de la cadena.
-    2) Una vez se acabe la cadena:
-      a) Si el vector de IDs del nodo actual no contiene el ID de la pelicula
-         asociada a la cadena, insertamos el ID de la pelicula al vector de IDs.
-         Tambien insertamos el peso de la cadena al vector de pesos.
+    TrieNode* actual = root_;
 
-    */
+    for (unsigned char c : word) {
+        if (!std::isalnum(c)) {
+            continue;
+        }
+
+        char letra = static_cast<char>(std::tolower(c));
+
+        if (actual->children_.find(letra) == actual->children_.end()) {
+            actual->children_[letra] = new TrieNode(letra);
+        }
+
+        actual = actual->children_[letra];
+    }
+
+    if (actual == root_) {
+        return;
+    }
+
+    actual->scores_[movieId] += peso;
+}
+
+void Trie::insert(const std::string &word, const std::unordered_map<unsigned, unsigned> &movieScores)
+{
+    if (word.empty() || movieScores.empty()) {
+        return;
+    }
+
+    TrieNode* actual = root_;
+
+    for (unsigned char c : word) {
+        if (!std::isalnum(c)) {
+            continue;
+        }
+
+        char letra = static_cast<char>(std::tolower(c));
+
+        if (actual->children_.find(letra) == actual->children_.end()) {
+            actual->children_[letra] = new TrieNode(letra);
+        }
+
+        actual = actual->children_[letra];
+    }
+
+    if (actual == root_) {
+        return;
+    }
+
+    for (const auto &par : movieScores) {
+        actual->scores_[par.first] += par.second;
+    }
 }
 
 std::vector<std::pair<unsigned, unsigned>> Trie::search(const std::string &word)
 {
-    /* Pseudocodigo de algoritmo de busqueda
-    1) Proporcionada una cadena, recorremos los nodos del arbol (desde la raiz), siguiendo el patron
-       de la cadena dada por el usuario hasta que se agote la cadena.
-      a) Si existen hijos del nodo actual que siguen el patron, seguir recorriendo
-         el arbol.
-      b) Si el nodo actual no tiene hijos que sigan el patron de la cadena
-        I. La palabra no esta en el arbol y, por lo tanto, no hay pelicula
-           asociada a la palabra. Detener el algoritmo y devolver un vector de
-           tuplas (ID, peso) vacio.
-    2) Si la cadena se agoto:
-      a) Si el nodo actual no tiene hijos, devolver el vector de IDs y el vector 
-         pesos del nodo actual como un vector de tuplas (ID, peso).
-      b) Si el nodo actual tiene hijos, crear un vector de tuplas (ID, peso):
-        I. Recorrer el subarbol usando Depth-First Search, insertando los valores
-           respectivos del nodo actual al vector de tuplas. Si el ID ya existe
-           en el vector de tuplas, simplemente sumar los pesos.
-        II. Una vez recorrido el subarbol, devolver al usuario el vector de tuplas.
-    */
+    std::vector<std::pair<unsigned, unsigned>> resultados;
+
+    if (word.empty()) {
+        return resultados;
+    }
+
+    TrieNode* actual = root_;
+
+    for (unsigned char c : word) {
+        if (!std::isalnum(c)) {
+            continue;
+        }
+
+        char letra = static_cast<char>(std::tolower(c));
+        auto it = actual->children_.find(letra);
+
+        if (it == actual->children_.end()) {
+            return resultados;
+        }
+
+        actual = it->second;
+    }
+
+    if (actual == root_) {
+        return resultados;
+    }
+
+    // Si el usuario busco una sub-palabra, el nodo actual representa el prefijo
+    // de varios sufijos. Recorremos el subarbol para recuperar todas las palabras
+    // que contienen esa sub-palabra.
+    std::unordered_map<unsigned, unsigned> puntajes;
+
+    std::function<void(TrieNode*)> dfs = [&](TrieNode* nodo) {
+        for (const auto &par : nodo->scores_) {
+            puntajes[par.first] += par.second;
+        }
+
+        for (auto &hijo : nodo->children_) {
+            dfs(hijo.second);
+        }
+    };
+
+    dfs(actual);
+
+    for (auto &par : puntajes) {
+        resultados.push_back(par);
+    }
+
+    std::sort(resultados.begin(), resultados.end(),
+              [](const std::pair<unsigned, unsigned>& a,
+                 const std::pair<unsigned, unsigned>& b) {
+                  if (a.second != b.second) {
+                      return a.second > b.second;
+                  }
+                  return a.first < b.first;
+              });
+
+    return resultados;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -278,4 +392,13 @@ std::vector<unsigned> SearchEngine::search(std::string str, SearchEngine::CATEGO
 //////////////////////////////////// USER /////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+void User::addLiked(unsigned movieId)
+{
+    liked_.insert(movieId);
+}
+
+void User::addwatchLater(unsigned movieId)
+{
+    watchLater_.insert(movieId);
+}
 
