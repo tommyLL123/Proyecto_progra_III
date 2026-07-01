@@ -3,6 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include <cctype>
+#include <algorithm>
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// UTILS ////////////////////////////////////
@@ -47,30 +48,42 @@ std::vector<std::string> utils::tokenize(const std::string &text)
     return tokens;
 }
 
+
 std::vector<std::string> utils::parseCSVLine(const std::string &line)
 {
     std::vector<std::string> fields;
     std::string field;
     bool inQuotes = false;
 
-    for (char c : line) {
-        if (c == '"') {
-            inQuotes = !inQuotes;
+    for (size_t i = 0; i < line.size(); i++)
+    {
+        char c = line[i];
+
+        if (c == '"')
+        {
+            if (inQuotes && i + 1 < line.size() && line[i + 1] == '"')
+            {
+                field += '"';
+                i++;
+            }
+            else
+            {
+                inQuotes = !inQuotes;
+            }
         }
-        else if (c == ',' && !inQuotes) {
+        else if (c == ',' && !inQuotes)
+        {
             fields.push_back(field);
             field.clear();
         }
-        else {
-            if(c == '.' || c == '-' || c == ':'){
-                c = ' ';
-            }
-
+        else
+        {
             field += c;
         }
     }
 
     fields.push_back(field);
+
     return fields;
 }
 
@@ -165,81 +178,91 @@ void SearchEngine::loadCSV(const std::string& filename) {
     // el csv. Esto es porque en la columna Plot a veces hay caracteres '\n'
     // y la funcion getline() toma este char como delimitador. Esto se arreglara.
     // Aparte de eso, el codigo funciona como deberia.
-    while(std::getline(file, line)) {
-        std::vector<std::string> fields = utils::parseCSVLine(line);
+   while (std::getline(file, line))
+{
+    // Si el número de comillas es impar, significa que
+    // el registro continúa en la siguiente línea.
+int quoteCount = std::count(line.begin(), line.end(), '"');
 
-        // Dataset esperado:
-        // 0 Release Year
-        // 1 Title
-        // 2 Origin/Ethnicity
-        // 3 Director
-        // 4 Cast
-        // 5 Genre
-        // 6 Wiki Page
-        // 7 Plot
+while (quoteCount % 2 != 0) {
+    std::string extra;
 
-        if (fields.size() < 8) {
-            continue;
-        }
+    if (!std::getline(file, extra))
+        break;
 
-        Movie m;
-        
-        m.id_ = curr_id++;
-        m.year_ = utils::is_num(fields[0]) ? std::stoul(fields[0]) : 0;
-        m.title_ = fields[1];
-        m.origin_ = fields[2];
-        m.director_ = fields[3];
-        m.cast_ = fields[4];
-        m.genre_ = fields[5];
-        m.wiki_ = fields[6];
-        m.plot_ = fields[7];
+    line += '\n';
+    line += extra;
 
-        movies_.push_back(m);
+    quoteCount += std::count(extra.begin(), extra.end(), '"');
+}
+    std::vector<std::string> fields = utils::parseCSVLine(line);
 
-        std::vector<std::string> titleWords = utils::tokenize(utils::normalize(m.title_));
-        std::vector<std::string> plotWords = utils::tokenize(utils::normalize(m.plot_));
+    // Dataset esperado:
+    // 0 Release Year
+    // 1 Title
+    // 2 Origin/Ethnicity
+    // 3 Director
+    // 4 Cast
+    // 5 Genre
+    // 6 Wiki Page
+    // 7 Plot
 
-        for (std::string &w : titleWords) {
-            // Insertamos todos los sufijos para permitir búsqueda por sub-palabra.
-            // Ejemplo: "desembarcar" permite encontrar "bar".
-            for (std::size_t i = 0; i < w.size(); i++) {
-                titlePlotTrie_.insert(w.substr(i), m.id_, 10);
-            }
-        }
+    if (fields.size() < 8)
+        continue;
 
-        for (std::string &w : plotWords) {
-            for (std::size_t i = 0; i < w.size(); i++) {
-                titlePlotTrie_.insert(w.substr(i), m.id_, 5);
-            }
-        }
+    Movie m;
 
-        std::vector<std::string> directorWords = utils::tokenize(utils::normalize(m.director_));
-        std::vector<std::string> castWords = utils::tokenize(utils::normalize(m.cast_));
+    m.id_ = curr_id++;
+    m.year_ = utils::is_num(fields[0]) ? std::stoul(fields[0]) : 0;
+    m.title_ = fields[1];
+    m.origin_ = fields[2];
+    m.director_ = fields[3];
+    m.cast_ = fields[4];
+    m.genre_ = fields[5];
+    m.wiki_ = fields[6];
+    m.plot_ = fields[7];
 
-        for (std::string &w : directorWords) {
-            for (std::size_t i = 0; i < w.size(); i++) {
-                directorTrie_.insert(w.substr(i), m.id_, 5);
-            }
-        }
+    movies_.push_back(m);
 
-        for (std::string &w : castWords) {
-            for (std::size_t i = 0; i < w.size(); i++) {
-                castTrie_.insert(w.substr(i), m.id_, 5);
-            }
-        }
+    std::vector<std::string> titleWords =
+        utils::tokenize(utils::normalize(m.title_));
+    std::vector<std::string> plotWords =
+        utils::tokenize(utils::normalize(m.plot_));
 
-        std::vector<std::string> originWords = utils::tokenize(utils::normalize(m.origin_));
-        std::vector<std::string> genreWords = utils::tokenize(utils::normalize(m.genre_));
+    for (std::string &w : titleWords)
+        for (size_t i = 0; i < w.size(); i++)
+            titlePlotTrie_.insert(w.substr(i), m.id_, 10);
 
-        // El operador [] de unordered_map encuentra el key y, si no existe, crea una nueva con esa key.
-        yearMap_[m.year_].push_back(m.id_);
-        for (std::string &w : originWords) {
-            originMap_[w].push_back(m.id_);
-        }
-        for (std::string &w : genreWords) {
-            genreMap_[w].push_back(m.id_);
-        }
-    }
+    for (std::string &w : plotWords)
+        for (size_t i = 0; i < w.size(); i++)
+            titlePlotTrie_.insert(w.substr(i), m.id_, 5);
+
+    std::vector<std::string> directorWords =
+        utils::tokenize(utils::normalize(m.director_));
+    std::vector<std::string> castWords =
+        utils::tokenize(utils::normalize(m.cast_));
+
+    for (std::string &w : directorWords)
+        for (size_t i = 0; i < w.size(); i++)
+            directorTrie_.insert(w.substr(i), m.id_, 5);
+
+    for (std::string &w : castWords)
+        for (size_t i = 0; i < w.size(); i++)
+            castTrie_.insert(w.substr(i), m.id_, 5);
+
+    std::vector<std::string> originWords =
+        utils::tokenize(utils::normalize(m.origin_));
+    std::vector<std::string> genreWords =
+        utils::tokenize(utils::normalize(m.genre_));
+
+    yearMap_[m.year_].push_back(m.id_);
+
+    for (std::string &w : originWords)
+        originMap_[w].push_back(m.id_);
+
+    for (std::string &w : genreWords)
+        genreMap_[w].push_back(m.id_);
+}
 
     std::cout << "Peliculas cargadas: " << movies_.size() << std::endl;
 }
