@@ -178,37 +178,6 @@ void Trie::insert(const std::string &word, unsigned movieId, unsigned peso)
     actual->scores_[movieId] += peso;
 }
 
-void Trie::insert(const std::string &word, const std::unordered_map<unsigned, unsigned> &movieScores)
-{
-    if (word.empty() || movieScores.empty()) {
-        return;
-    }
-
-    TrieNode* actual = root_;
-
-    for (unsigned char c : word) {
-        if (!std::isalnum(c)) {
-            continue;
-        }
-
-        char letra = static_cast<char>(std::tolower(c));
-
-        if (actual->children_.find(letra) == actual->children_.end()) {
-            actual->children_[letra] = new TrieNode(letra);
-        }
-
-        actual = actual->children_[letra];
-    }
-
-    if (actual == root_) {
-        return;
-    }
-
-    for (const auto &par : movieScores) {
-        actual->scores_[par.first] += par.second;
-    }
-}
-
 std::vector<std::pair<unsigned, unsigned>> Trie::search(const std::string &word)
 {
     std::vector<std::pair<unsigned, unsigned>> resultados;
