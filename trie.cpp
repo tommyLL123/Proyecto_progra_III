@@ -385,6 +385,102 @@ while (quoteCount % 2 != 0) {
 
 std::vector<unsigned> SearchEngine::search(std::string str, SearchEngine::CATEGORIA_BUSQUEDA categ)
 {
+    std::vector<unsigned> finalResults;
+    std::unordered_map<unsigned, unsigned> scoreByMovie;
+
+    // Normalizamos la búsqueda del usuario.
+    std::string normalized = utils::normalize(str);
+    std::vector<std::string> words = utils::tokenize(normalized);
+
+    if (words.empty()) {
+        return finalResults;
+    }
+
+    // Búsqueda en Trie: título/sinopsis, director o cast.
+    if (categ == TITLE_PLOT || categ == DIRECTOR || categ == CAST) {
+        Trie* selectedTrie = nullptr;
+
+        if (categ == TITLE_PLOT) {
+            selectedTrie = &titlePlotTrie_;
+        }
+        else if (categ == DIRECTOR) {
+            selectedTrie = &directorTrie_;
+        }
+        else if (categ == CAST) {
+            selectedTrie = &castTrie_;
+        }
+
+        for (const std::string& word : words) {
+            std::vector<std::pair<unsigned, unsigned>> partialResults =
+                selectedTrie->search(word);
+
+            for (const auto& result : partialResults) {
+                unsigned movieId = result.first;
+                unsigned peso = result.second;
+
+                scoreByMovie[movieId] += peso;
+            }
+        }
+    }
+
+    // Búsqueda por año.
+    else if (categ == YEAR) {
+        if (utils::is_num(words[0])) {
+            unsigned year = std::stoul(words[0]);
+
+            if (yearMap_.find(year) != yearMap_.end()) {
+                for (unsigned movieId : yearMap_[year]) {
+                    scoreByMovie[movieId] += 20;
+                }
+            }
+        }
+    }
+
+    // Búsqueda por origen.
+    else if (categ == ORIGIN) {
+        for (const std::string& word : words) {
+            if (originMap_.find(word) != originMap_.end()) {
+                for (unsigned movieId : originMap_[word]) {
+                    scoreByMovie[movieId] += 15;
+                }
+            }
+        }
+    }
+
+    // Búsqueda por género.
+    else if (categ == GENRE) {
+        for (const std::string& word : words) {
+            if (genreMap_.find(word) != genreMap_.end()) {
+                for (unsigned movieId : genreMap_[word]) {
+                    scoreByMovie[movieId] += 15;
+                }
+            }
+        }
+    }
+
+    // Pasamos el unordered_map a un vector para ordenar por importancia.
+    std::vector<std::pair<unsigned, unsigned>> orderedResults;
+
+    for (const auto& item : scoreByMovie) {
+        orderedResults.push_back(item);
+    }
+
+    // Ordenar de mayor a menor puntaje.
+    std::sort(
+        orderedResults.begin(),
+        orderedResults.end(),
+        [](const std::pair<unsigned, unsigned>& a,
+           const std::pair<unsigned, unsigned>& b) {
+            return a.second > b.second;
+        }
+    );
+
+    // Nos quedamos solo con los IDs.
+    for (const auto& item : orderedResults) {
+        finalResults.push_back(item.first);
+    }
+
+    return finalResults;
 }
 
 
