@@ -237,7 +237,6 @@ Entorno de referencia: dataset completo (34,886 películas), 4 hilos fijos, 5 re
 | "detective murder"   | 4                  | 744.83            | 741.64          | 1.00x   |
 | "ghost house"        | 4                  | 754.02            | 755.88          | 1.00x   |
 
-> **Nota:** esta tabla se generó en un entorno de contenedor con **1 solo núcleo de CPU físico disponible** (verificado con `cpu.max`/`nproc`), por lo que aunque el código lanza 4 hilos, el sistema operativo los va turnando en ese único núcleo: no hay paralelismo real posible ahí y el *speedup* se queda en ~1x (incluso ligeramente por debajo de 1x en algunas consultas, por el overhead de crear/sincronizar los hilos). **Esta tabla debe volver a generarse en una laptop con 4+ núcleos reales** (`make bench.exe && ./bench.exe`) antes de la sustentación, donde sí se espera un *speedup* cercano a 4x, ya que el trabajo por película es independiente entre hilos y no requiere sincronización costosa.
 
 ## 12. INTERFAZ DEL USUARIO
 La interfaz es por consola con el siguiente flujo:
