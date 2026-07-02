@@ -499,3 +499,20 @@ void User::addwatchLater(unsigned movieId)
 {
     watchLater_.insert(movieId);
 }
+
+const std::unordered_set<unsigned>& User::getLiked() const
+{
+    return liked_;
+}
+
+const std::unordered_set<unsigned>& User::getWatchLater() const
+{
+    return watchLater_;
+}
+
+void User::setState(const std::unordered_set<unsigned>& liked,
+                     const std::unordered_set<unsigned>& watchLater)
+{
+    liked_ = liked;
+    watchLater_ = watchLater;
+}
