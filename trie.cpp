@@ -178,7 +178,7 @@ void Trie::insert(const std::string &word, unsigned movieId, unsigned peso)
     actual->scores_[movieId] += peso; // es el score garantizado ser 0 la primera vez?
 }
 
-std::vector<std::pair<unsigned, unsigned>> Trie::search(const std::string &word)
+std::vector<std::pair<unsigned, unsigned>> Trie::search(const std::string &word) const
 {
     std::vector<std::pair<unsigned, unsigned>> resultados;
 
@@ -376,7 +376,7 @@ void SearchEngine::loadCSV(const std::string& filename) {
     std::cout << "Peliculas cargadas: " << movies_.size() << std::endl;
 }
 
-std::vector<unsigned> SearchEngine::search(std::string str, SearchEngine::CATEGORIA_BUSQUEDA categ)
+std::vector<unsigned> SearchEngine::search(std::string str, SearchEngine::CATEGORIA_BUSQUEDA categ) const
 {
     std::vector<unsigned> finalResults;
     std::unordered_map<unsigned, unsigned> scoreByMovie;
@@ -389,7 +389,7 @@ std::vector<unsigned> SearchEngine::search(std::string str, SearchEngine::CATEGO
     }
 
     if (categ == TITLE_PLOT || categ == DIRECTOR || categ == CAST) {
-        Trie* selectedTrie = nullptr;
+        const Trie* selectedTrie = nullptr;
 
         if (categ == TITLE_PLOT) {
             selectedTrie = &titlePlotTrie_;

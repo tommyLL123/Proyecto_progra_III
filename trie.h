@@ -54,7 +54,7 @@ public:
   Trie();
 
   void insert(const std::string &word, unsigned movieId, unsigned peso);
-  std::vector<std::pair<unsigned, unsigned>> search(const std::string &word);
+  std::vector<std::pair<unsigned, unsigned>> search(const std::string &word) const;
 };
 
 class SearchEngine
@@ -82,7 +82,7 @@ public:
   };
 
   void loadCSV(const std::string& filename);
-  std::vector<unsigned> search(std::string str, CATEGORIA_BUSQUEDA categ);
+  std::vector<unsigned> search(std::string str, CATEGORIA_BUSQUEDA categ) const;
 
   const Movie& getMovie(unsigned id) const { return movies_.at(id); }
   unsigned movieCount() const { return movies_.size(); }

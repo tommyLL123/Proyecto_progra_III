@@ -1,6 +1,8 @@
 #include "trie.h"
 #include "patronesdediseño.h"
 #include <iostream>
+#include <algorithm>
+#include <map>
 
 namespace {
 
@@ -143,6 +145,88 @@ void mostrarListaVerMasTarde(const SearchEngine& engine, const User& user)
     }
 }
 
+void mostrarRecomendados(const SearchEngine& engine, const User& user)
+{
+  std::cout << "\n--- RECOMENDACIONES ---\n\n";
+
+  std::unordered_set<unsigned> likedPelis = user.getLiked();
+
+  if(likedPelis.empty())
+  {
+    std::cout << "Denle like a una pelicula para acceder a recomendaciones.\n";
+    return;
+  }
+
+  std::unordered_map<std::string, unsigned> generos;
+  std::unordered_map<std::string, unsigned> directores;
+  std::string titulos;
+
+  for(auto i = likedPelis.cbegin(); i != likedPelis.cend(); ++i)
+  {
+    const Movie curr_mov = engine.getMovie(*i);
+
+    generos[curr_mov.genre_]++;
+    directores[curr_mov.director_]++;
+    titulos += curr_mov.title_ + " ";
+  }
+  
+  auto cmp = [](const std::pair<std::string, unsigned> &lhs, std::pair<std::string, unsigned> &rhs)
+               { return lhs.second > rhs.second;};
+
+  std::vector<std::pair<std::string, unsigned>> ord_generos(generos.begin(), generos.end());
+  std::sort(ord_generos.begin(), ord_generos.end(), cmp);
+  std::vector<std::pair<std::string, unsigned>> ord_directores(directores.begin(), directores.end());
+  std::sort(ord_directores.begin(), ord_directores.end(), cmp);
+
+  
+  std::unordered_set<unsigned> generos_match;
+  unsigned num_max = 0;
+
+  for(auto i = ord_generos.begin(); i != ord_generos.end() && num_max < 3; ++i, ++num_max)
+  { 
+    std::vector<unsigned> temp = engine.search(i->first, SearchEngine::CATEGORIA_BUSQUEDA::GENRE);
+    generos_match.insert(temp.begin(), temp.end());
+  }
+
+  std::unordered_set<unsigned> directores_match;
+  num_max = 0;
+
+  for(auto i = ord_directores.begin(); i != ord_directores.end() && num_max < 3; ++i, ++num_max)
+  { 
+    std::vector<unsigned> temp = engine.search(i->first, SearchEngine::CATEGORIA_BUSQUEDA::DIRECTOR);
+    directores_match.insert(temp.begin(), temp.end());
+  }
+
+  std::vector<unsigned> titulos_match = engine.search(titulos, SearchEngine::CATEGORIA_BUSQUEDA::TITLE_PLOT);
+
+  std::vector<unsigned> recomendaciones;
+
+  num_max = 0;
+  for(auto i = titulos_match.begin(); i != titulos_match.end() && num_max < 5; ++i)
+  {
+    if(likedPelis.find(*i) != likedPelis.end())
+    {
+      continue;
+    }
+    else if(directores_match.find(*i) != directores_match.end())
+    {
+      recomendaciones.push_back(*i);
+      num_max++;
+    }
+    else if(generos_match.find(*i) != generos_match.end())
+    {
+      recomendaciones.push_back(*i);
+      num_max++;
+    }
+  }
+
+
+  for (unsigned id : recomendaciones)
+  {
+      std::cout << "- " << engine.getMovie(id).title_ << "\n";
+  }
+}
+
 bool preguntarSiNo(const std::string& pregunta)
 {
     std::cout << pregunta << " (si/no): ";
@@ -151,10 +235,14 @@ bool preguntarSiNo(const std::string& pregunta)
     return resp == "si" || resp == "s" || resp == "S" || resp == "Si";
 }
 
+
+
 }
 
 int main(void)
 {
+
+    std::cout << "\nCargando peliculas...\n";
     SearchEngine engine;
     engine.loadCSV("wiki_movie_plots_deduped.csv");
 
@@ -211,6 +299,7 @@ int main(void)
 
             std::cout << "\n(1) Buscar otra pelicula\n";
             std::cout << "(2) Ver lista\n";
+            std::cout << "(3) Ver recomendaciones\n";
             std::cout << "Opcion: ";
 
             std::string opcionMenu;
@@ -219,6 +308,10 @@ int main(void)
             if (opcionMenu == "2")
             {
                 mostrarListaVerMasTarde(engine, user);
+            }
+            else if (opcionMenu == "3")
+            {
+                mostrarRecomendados(engine, user);
             }
 
             volverABuscar = true;
