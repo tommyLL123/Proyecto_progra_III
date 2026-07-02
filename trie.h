@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -11,8 +12,7 @@ namespace utils
   std::vector<std::string> parseCSVLine(const std::string &line);
 }
 
-class Movie
-{
+class Movie{
 public:
   unsigned id_;
   unsigned year_;
@@ -35,8 +35,7 @@ Para permitir busqueda por sub-palabra se insertan sufijos de cada palabra.
 Ejemplo: para "desembarcar" se insertan "desembarcar", "esembarcar", ...,
 "barcar", etc. Asi una busqueda por "bar" puede encontrar la pelicula.
 */
-class TrieNode
-{
+class TrieNode{
 public:
   TrieNode();
   TrieNode(char letra);
@@ -91,10 +90,15 @@ public:
 
 class User
 {
-private:
   std::unordered_set<unsigned> liked_;
   std::unordered_set<unsigned> watchLater_;
-public:
+  public:
+
   void addLiked(unsigned movieId);
   void addwatchLater(unsigned movieId);
+
+  const std::unordered_set<unsigned>& getLiked() const;
+  const std::unordered_set<unsigned>& getWatchLater() const;
+  void setState(const std::unordered_set<unsigned>& liked,
+  const std::unordered_set<unsigned>& watchLater);
 };
