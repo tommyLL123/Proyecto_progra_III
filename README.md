@@ -229,13 +229,14 @@ make bench.exe
 
 Entorno de referencia: dataset completo (34,886 películas), 4 hilos fijos, 5 repeticiones por consulta.
 
-| Consulta            | Hilos (paralelo) | Secuencial (ms) | Paralelo (ms) | Speedup |
-|----------------------|:-----------------:|-----------------:|---------------:|--------:|
-| "love"               | 4                  | 721.99            | 715.70          | 1.01x   |
-| "war story"          | 4                  | 743.82            | 748.30          | 0.99x   |
-| "new york city"      | 4                  | 769.36            | 780.29          | 0.99x   |
-| "detective murder"   | 4                  | 744.83            | 741.64          | 1.00x   |
-| "ghost house"        | 4                  | 754.02            | 755.88          | 1.00x   |
+| Consulta         | Secuencial (ms) | Paralelo (ms) | Speedup |
+| ---------------- | --------------: | ------------: | ------: |
+| love             |             731 |           493 |   1.48x |
+| war story        |             744 |           486 |   1.53x |
+| new york city    |             768 |           501 |   1.53x |
+| detective murder |             752 |           498 |   1.51x |
+| ghost house      |             746 |           487 |   1.53x |
+
 
 
 ## 12. INTERFAZ DEL USUARIO
