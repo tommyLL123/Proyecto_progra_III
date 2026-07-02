@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <functional>
 #include <unordered_map>
+#include <thread>
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// UTILS ////////////////////////////////////
@@ -411,23 +412,70 @@ std::vector<unsigned> SearchEngine::search(std::string str, SearchEngine::CATEGO
 
         // Para TITLE_PLOT, además del Trie, verificamos sub-palabras dentro de la sinopsis.
         // Esto evita que la carga sea excesivamente lenta con el CSV completo.
-        if (categ == TITLE_PLOT) {
-            for (const Movie &m : movies_) {
-                std::string normalizedTitle = utils::normalize(m.title_);
-                std::string normalizedPlot = utils::normalize(m.plot_);
 
-                for (const std::string &word : words) {
-                    if (normalizedTitle.find(word) != std::string::npos) {
-                        scoreByMovie[m.id_] += 10;
-                    }
+        if (categ == TITLE_PLOT)
+        {
+            unsigned int numThreads = std::thread::hardware_concurrency();
 
-                    if (normalizedPlot.find(word) != std::string::npos) {
-                        scoreByMovie[m.id_] += 5;
+            if (numThreads == 0)
+                numThreads = 2;
+
+            size_t totalMovies = movies_.size();
+            
+            if (numThreads > totalMovies)
+                numThreads = static_cast<unsigned int>(totalMovies);
+
+            std::vector<std::thread> threads;
+            
+            std::vector<std::unordered_map<unsigned, unsigned>> localScores(numThreads);
+
+            size_t chunkSize = (totalMovies + numThreads - 1) / numThreads;
+
+            for (unsigned int t = 0; t < numThreads; t++)
+            {
+                size_t startIdx = t * chunkSize;
+                size_t endIdx = std::min(startIdx + chunkSize, totalMovies);
+
+                threads.emplace_back([&, t, startIdx, endIdx]()
+                {
+                    for (size_t i = startIdx; i < endIdx; i++)
+                    {
+                        const Movie& m = movies_[i];
+
+                        std::string normalizedTitle = utils::normalize(m.title_);
+                        std::string normalizedPlot = utils::normalize(m.plot_);
+
+                        for (const std::string& word : words)
+                        {
+                            if (normalizedTitle.find(word) != std::string::npos)
+                            {
+                                localScores[t][m.id_] += 10;
+                            }
+
+                            if (normalizedPlot.find(word) != std::string::npos)
+                            {
+                                localScores[t][m.id_] += 5;
+                            }
+                        }
                     }
+                });
+            }
+            
+            for (auto& th : threads)
+            {
+                th.join();
+            }
+
+
+            for (const auto& localMap : localScores)
+            {
+                for (const auto& par : localMap)
+                {
+                    scoreByMovie[par.first] += par.second;
                 }
             }
         }
-    }
+            
     else if (categ == YEAR) {
         if (utils::is_num(words[0])) {
             unsigned year = std::stoul(words[0]);
@@ -485,7 +533,7 @@ std::vector<unsigned> SearchEngine::search(std::string str, SearchEngine::CATEGO
 
     return finalResults;
 }
-
+}
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// USER /////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
