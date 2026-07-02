@@ -212,7 +212,34 @@ El programa permite buscar por:
 Actualmente la busqueda principal es por palabra/frase en titulo y sinopsis. La busqueda por tags se realiza comparando directamente con los campos normalizados.
 
 
-## 11. INTERFAZ DEL USUARIO
+## 11. PROGRAMACIÓN PARALELA: COMPARACIÓN DE TIEMPOS (SECUENCIAL VS PARALELO)
+
+En `SearchEngine::search` (categoría `TITLE_PLOT`), además de recorrer el Suffix Tree, el programa revisa **cada película del dataset** buscando la subcadena dentro del título y del plot (esto evita perder coincidencias parciales dentro de palabras largas). Como este recorrido es independiente por película, se paralelizó repartiendo el vector de películas entre **4 `std::thread` fijos**, cada uno acumulando sus resultados en un mapa local que luego se combina (patrón *map-reduce* simple, sin necesidad de mutex).
+
+### Metodología
+Se agregó `benchmark.cpp`, que carga el CSV completo y ejecuta la misma búsqueda dos veces por consulta: una forzando 1 solo hilo (secuencial) y otra usando los 4 hilos fijos (paralelo), promediando 5 repeticiones por consulta.
+
+Compilar y ejecutar:
+```
+make bench.exe
+./bench.exe
+```
+
+### Resultados
+
+Entorno de referencia: dataset completo (34,886 películas), 4 hilos fijos, 5 repeticiones por consulta.
+
+| Consulta            | Hilos (paralelo) | Secuencial (ms) | Paralelo (ms) | Speedup |
+|----------------------|:-----------------:|-----------------:|---------------:|--------:|
+| "love"               | 4                  | 721.99            | 715.70          | 1.01x   |
+| "war story"          | 4                  | 743.82            | 748.30          | 0.99x   |
+| "new york city"      | 4                  | 769.36            | 780.29          | 0.99x   |
+| "detective murder"   | 4                  | 744.83            | 741.64          | 1.00x   |
+| "ghost house"        | 4                  | 754.02            | 755.88          | 1.00x   |
+
+> **Nota:** esta tabla se generó en un entorno de contenedor con **1 solo núcleo de CPU físico disponible** (verificado con `cpu.max`/`nproc`), por lo que aunque el código lanza 4 hilos, el sistema operativo los va turnando en ese único núcleo: no hay paralelismo real posible ahí y el *speedup* se queda en ~1x (incluso ligeramente por debajo de 1x en algunas consultas, por el overhead de crear/sincronizar los hilos). **Esta tabla debe volver a generarse en una laptop con 4+ núcleos reales** (`make bench.exe && ./bench.exe`) antes de la sustentación, donde sí se espera un *speedup* cercano a 4x, ya que el trabajo por película es independiente entre hilos y no requiere sincronización costosa.
+
+## 12. INTERFAZ DEL USUARIO
 La interfaz es por consola con el siguiente flujo:
 
 Inicio del programa:
